@@ -1,3 +1,6 @@
+"""
+Model class for the log parsing model.
+"""
 from abc import ABC, abstractmethod
 from typing import List, Optional
 from pydantic import BaseModel, Field

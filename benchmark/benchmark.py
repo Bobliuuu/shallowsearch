@@ -1,3 +1,6 @@
+"""
+Benchmarking module for the log parsing model.
+"""
 from typing import List, Optional
 import csv
 from transformers import AutoModel, AutoTokenizer
@@ -24,17 +27,34 @@ class Benchmark:
         """
         Loads the dataset (from a CSV file) into a list of ModelPrediction.
         """
+        print(f"\nLoading dataset from {path} with delimiter '{delimiter}'")
         _dicts = []
-        with open(path, 'r') as csvfile:
+        with open(path, 'r', encoding='utf-8') as csvfile:
             rows = csv.DictReader(csvfile, delimiter=delimiter)
-            _dicts = [{k: v for k, v in row.items()} for row in rows]
-        _dataset = [ModelPrediction.from_dict(_dict) for _dict in _dicts]
-        return _dataset
+            print(f"CSV headers: {rows.fieldnames}")
+            
+            # Ensure all dictionary keys are strings
+            _dicts = [{str(k).strip(): str(v).strip() if v is not None else None 
+                      for k, v in row.items()} 
+                     for row in rows]
+            
+            print(f"Loaded {len(_dicts)} rows from CSV")
+            print("First row:", _dicts[0] if _dicts else "No data")
+            
+            try:
+                _dataset = [ModelPrediction.from_dict(_dict) for _dict in _dicts]
+                print(f"Successfully converted {len(_dataset)} rows to ModelPrediction objects")
+                return _dataset
+            except Exception as e:
+                print(f"Error converting dictionary to ModelPrediction: {e}")
+                if _dicts:
+                    print(f"Sample dict that caused error: {_dicts[0]}")
+                raise
 
     @staticmethod
     def load_dicts(path: str, delimiter=",") -> List[dict]:
         _dicts = []
-        with open(path, 'r') as csvfile:
+        with open(path, 'r', encoding='utf-8') as csvfile:
             rows = csv.DictReader(csvfile, delimiter=delimiter)
             _dicts = [{k: v for k, v in row.items()} for row in rows]
         return _dicts
@@ -86,27 +106,47 @@ class Benchmark:
         Runs the benchmark on the provided dataset.
         Returns a tuple of the losses (dict) and model predictions (list).
         """
+        print("\nStarting benchmark run...")
         _prediction_metrics = self.model.get_prediction_metrics()
+        print(f"Model metrics to evaluate: {_prediction_metrics}")
+        
         losses = {_metric: 0 for _metric in _prediction_metrics}
-
-        # Keep track of the predictions:
         predictions = []
 
-        for label in self.dataset:
-            # Get prediction:
-            label_dict = label.to_dict()
-            # print(f"Running prediction on {label.input}")
-            prediction = self.model.predict(label.input)
-            predictions.append(prediction)
+        print(f"\nProcessing {len(self.dataset)} examples...")
+        try:
+            for i, label in enumerate(self.dataset, 1):
+                print(f"\nExample {i}/{len(self.dataset)}:")
+                print(f"Input: {label.input[:100]}...")  # Show first 100 chars
+                
+                # Get prediction:
+                label_dict = label.to_dict()
+                prediction = self.model.predict(label.input)
+                predictions.append(prediction)
+                
+                # Calculate losses:
+                prediction_dict = prediction.to_dict()
+                print("Prediction results:")
+                for _metric in _prediction_metrics:
+                    _pred = prediction_dict[_metric]
+                    _label = label_dict[_metric]
+                    _loss = Benchmark._get_loss(_pred, _label, _metric)
+                    losses[_metric] += _loss
+                    print(f"  {_metric}: predicted='{_pred}', actual='{_label}', loss={_loss}")
 
-            # Calculate losses:
-            prediction_dict = prediction.to_dict()
-            for _metric in _prediction_metrics:
-                _pred = prediction_dict[_metric]
-                _label = label_dict[_metric]
-                _loss = Benchmark._get_loss(_pred, _label, _metric)
-                # Add loss:
-                losses[_metric] += _loss
+        except KeyboardInterrupt:
+            print("\n\nBenchmark interrupted by user. Processing partial results...")
+        finally:
+            # Calculate and display results for processed examples
+            data_length = len(predictions)
+            print(f"\nBenchmark complete. Processed {data_length}/{len(self.dataset)} examples.")
+            
+            if data_length > 0:
+                print("Final average losses:")
+                for metric, loss in losses.items():
+                    avg_loss = loss / data_length
+                    print(f"  {metric}: {avg_loss:.4f}")
+            else:
+                print("No examples were processed completely.")
 
-        data_length = len(predictions)
-        return losses, predictions, data_length
+            return losses, predictions, data_length
