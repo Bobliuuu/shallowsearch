@@ -33,10 +33,13 @@ class Benchmark:
             rows = csv.DictReader(csvfile, delimiter=delimiter)
             print(f"CSV headers: {rows.fieldnames}")
             
-            # Ensure all dictionary keys are strings
+            # Ensure all dictionary keys are strings and store rows
             _dicts = [{str(k).strip(): str(v).strip() if v is not None else None 
                       for k, v in row.items()} 
                      for row in rows]
+            
+            # Reverse the order of rows
+            _dicts.reverse()
             
             print(f"Loaded {len(_dicts)} rows from CSV")
             print("First row:", _dicts[0] if _dicts else "No data")

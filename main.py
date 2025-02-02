@@ -6,6 +6,7 @@ from typing import Optional
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+from benchmark.apache_model import ApacheBenchmark
 
 load_dotenv()
 
@@ -129,10 +130,9 @@ class GroqLanguageModel(BaseLanguageModel):
                 )
                 response = completion.choices[0].message.content.strip()
                 result = self._parse_response(response)
-                
                 # Check if we got valid content
-                if (result.description.strip() and 
-                    result.solution.strip() and 
+                if (str(result.description) and 
+                    str(result.solution) and 
                     result.error_type in ['fatal', 'runtime', 'no_error', 'warning'] and
                     result.severity in ['notice', 'warn', 'error']):
                     return result
@@ -176,8 +176,8 @@ class OllamaLanguageModel(BaseLanguageModel):
                 result = self._parse_response(response['message']['content'].strip())
                 
                 # Check if we got valid content
-                if (result.description.strip() and 
-                    result.solution.strip() and 
+                if (str(result.description) and 
+                    str(result.solution) and 
                     result.error_type in ['fatal', 'runtime', 'no_error', 'warning'] and
                     result.severity in ['notice', 'warn', 'error']):
                     return result
@@ -200,7 +200,7 @@ class OllamaLanguageModel(BaseLanguageModel):
 class DeepseekModel(Model):
     def __init__(self, config: Optional[BaseLanguageModel] = None):
         if config is None:
-            config = GroqModelConfig()  # Default to Groq
+            config = GroqModelConfig()
             
         if isinstance(config, GroqModelConfig):
             self.model = GroqLanguageModel(config)
@@ -227,6 +227,24 @@ class DeepseekModel(Model):
 
         DO NOT use JSON format. DO NOT add any other text or explanations. DO NOT add markdown formatting in the labels.
         Any deviation from this format will result in parsing errors.
+
+        For solutions, follow these guidelines:
+        - Start with action verbs like "Check", "Verify", "Ensure", or "Review"
+        - For configuration issues, mention specific files (e.g., .htaccess, apache2.conf)
+        - For permission issues, include specific commands (e.g., chmod, chown)
+        - For no_error types, use "No action is required" or "No specific action is required"
+        - Keep solutions concise but specific
+        - Include file paths when relevant
+        - For PHP/code issues, mention functions or methods to check
+
+        Common solution patterns to follow:
+        - For no_error: "No specific action is required as this is purely informational"
+        - For file checks: "Check if the [file] exists at the specified path and verify its permissions"
+        - For configuration: "Check the Apache configuration files (e.g., httpd.conf) for proper settings"
+        - For permissions: "Ensure that the script is executable by the appropriate user or group"
+        - For validation: "Check if the [key] exists before accessing it using isset or array_key_exists"
+        - For runtime issues: "To fix this issue, check if the [component] is properly configured"
+        - For access issues: "Verify that all required files are present and accessible"
 
         Analysis steps:
         1. First, identify the log format components:
@@ -362,8 +380,8 @@ class DeepseekModel(Model):
 
 
 if __name__ == "__main__":
-    # Choose which model to use:
-    use_ollama = True  # Set to False to use Groq instead
+    # Otherwise use Groq + Deepseek-R1-Distill-LLama-70B
+    use_ollama = False
     
     if use_ollama:
         model = DeepseekModel(config=OllamaModelConfig())
@@ -372,3 +390,10 @@ if __name__ == "__main__":
     
     benchmark = Benchmark(model=model, dataset_path="data/actual/dataset.csv", delimiter="|")
     benchmark.run_benchmark()
+
+    # benchmark = ApacheBenchmark(
+    #     model=model,
+    #     dataset_path="data/actual/rootly.csv",
+    #     delimiter=","
+    # )
+    # results = benchmark.run_benchmark(max_samples=100)
