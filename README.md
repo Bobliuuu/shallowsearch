@@ -15,7 +15,28 @@ DeepSeek R1 incorporates reinforcement learning to improve reasoning, making it 
 
 ## Methodology
 
-
+### Data Preprocessing and N-Gram Analysis
+We utilized a Python-based approach to analyze actual logs and extract the most common n-grams using the Natural Language Toolkit (NLTK). Specifically, we identified consecutive n-grams ranging from unigrams (1-gram) to fourteen-grams (14-gram). These extracted n-grams were manually analyzed from a linguistic perspective and integrated into the prompts to ensure that the output accurately reflected the most frequently occurring patterns in the logs.
+### Model Distillation and Reinforcement Learning
+DeepSeek R1, a reinforcement learning-enhanced model, was distilled from Groq’s LLaMA 70B. The distillation process involved training a smaller, more efficient model while transferring knowledge from the larger LLaMA 70B model. To enhance DeepSeek R1’s performance, we applied manual reinforcement learning by systematically reviewing its outputs and removing incorrect responses. This was necessary due to inconsistencies in how DeepSeek classified errors; for instance, it often misclassified actual errors as non-errors.
+We observed that DeepSeek R1 struggled with short phrases, such as “Done...”, which negatively impacted classification accuracy. As a mitigation strategy, we employed few-shot prompting by providing each enumeration (enum) field with 4-5 guiding examples to improve response reliability.
+### Prompt Optimization and Performance Benchmarking
+DeepSeek R1:1.5B (local Ollama) exhibited significantly worse performance on enum fields, with a loss increase of approximately 0.5 under the same prompt conditions. To address this, we experimented with minimizing the prompt content to provide a clearer reasoning direction.
+We also modified our benchmarking approach to improve testing efficiency. This included:
+Implementing a try/except block for keyboard interrupts to allow batch testing.
+Adding a max_retries mechanism to handle formatting failures.
+Explicitly structuring the prompt with formatting instructions at both the start and end to ensure better model attention.
+Additionally, DeepSeek R1 showed a preference for information introduced earlier in the prompt. We leveraged this observation by prioritizing descriptions over solutions, which initially resulted in better performance. To mitigate this bias, we added contextual details to solutions, which narrowed the accuracy gap from ~0.25/0.3 to ~0.15/0.2.
+### Overfitting Considerations
+While some individual loss values were as low as ~0.05, general overfitting was minimal due to the structured nature of Apache Error Logs. The dataset was carefully curated to space out keywords appropriately, reducing overfitting risks while maintaining a high level of accuracy.
+### Embedding-Based Similarity Measurement
+To further refine error classification, we leveraged spaCy’s word vector representations to enhance similarity measurements between actual and synthetic error log descriptions. This involved encoding the dataset into embeddings and integrating them into DeepSeek R1 for more consistent outputs.
+### Dataset Structuring and Compression
+To facilitate structured learning, we converted the validated dataset into a structured format suitable for DeepSeek R1’s processing. We also explored two compression techniques for handling CSV data:
+Singular Value Decomposition (SVD) for dimensionality reduction.
+LLMLingua prompt compression to reduce prompt length while preserving key semantic details.
+### Inference Optimization
+For performance reasons, DeepSeek R1 was called only once per evaluation cycle. Given its high processing speed, re-evaluating outputs multiple times was computationally expensive and impractical. Instead, we optimized the prompt structure to maximize accuracy within a single inference pass.
 
 ### Dataset description
 
