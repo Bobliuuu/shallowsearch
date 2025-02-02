@@ -5,6 +5,7 @@ from typing import List, Optional
 import csv
 from transformers import AutoModel, AutoTokenizer
 import torch
+import time
 
 from .model_class import Model, ModelPrediction, _error_types, _severities
 
@@ -115,6 +116,8 @@ class Benchmark:
         
         losses = {_metric: 0 for _metric in _prediction_metrics}
         predictions = []
+        prediction_times = []
+        total_start_time = time.time()
 
         print(f"\nProcessing {len(self.dataset)} examples...")
         try:
@@ -122,12 +125,18 @@ class Benchmark:
                 print(f"\nExample {i}/{len(self.dataset)}:")
                 print(f"Input: {label.input[:100]}...")  # Show first 100 chars
                 
-                # Get prediction:
-                label_dict = label.to_dict()
+                # Time the prediction
+                pred_start_time = time.time()
                 prediction = self.model.predict(label.input)
+                pred_time = time.time() - pred_start_time
+                prediction_times.append(pred_time)
+                
+                print(f"Prediction time: {pred_time:.2f}s")
+                
                 predictions.append(prediction)
                 
                 # Calculate losses:
+                label_dict = label.to_dict()
                 prediction_dict = prediction.to_dict()
                 print("Prediction results:")
                 for _metric in _prediction_metrics:
@@ -141,15 +150,23 @@ class Benchmark:
             print("\n\nBenchmark interrupted by user. Processing partial results...")
         finally:
             # Calculate and display results for processed examples
+            total_time = time.time() - total_start_time
             data_length = len(predictions)
+            
             print(f"\nBenchmark complete. Processed {data_length}/{len(self.dataset)} examples.")
+            print(f"Total time: {total_time:.2f}s")
             
             if data_length > 0:
-                print("Final average losses:")
+                avg_prediction_time = sum(prediction_times) / data_length
+                print(f"Average prediction time: {avg_prediction_time:.2f}s")
+                print(f"Fastest prediction: {min(prediction_times):.2f}s")
+                print(f"Slowest prediction: {max(prediction_times):.2f}s")
+                
+                print("\nFinal average losses:")
                 for metric, loss in losses.items():
                     avg_loss = loss / data_length
                     print(f"  {metric}: {avg_loss:.4f}")
             else:
                 print("No examples were processed completely.")
 
-            return losses, predictions, data_length
+            return losses, predictions, data_length, prediction_times

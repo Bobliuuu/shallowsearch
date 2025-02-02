@@ -2,11 +2,14 @@ from benchmark.benchmark import Benchmark
 from benchmark.model_class import Model, ModelPrediction
 from groq import Groq
 from ollama import chat
-from typing import Optional
+from typing import Optional, List
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
-from benchmark.apache_model import ApacheBenchmark
+from azure.ai.inference import ChatCompletionsClient
+from azure.core.credentials import AzureKeyCredential
+import os
+# from benchmark.apache_model import ApacheBenchmark
 
 load_dotenv()
 
@@ -26,6 +29,15 @@ class OllamaModelConfig:
     temperature: float = 0.6
     num_predict: Optional[int] = 4096
     top_p: float = 0.95
+
+
+@dataclass
+class AzureModelConfig:
+    model: str = "azure"
+    model_name: str = "deepseek-r1"
+    temperature: float = 0.6
+    max_tokens: Optional[int] = 2048
+    endpoint: str = "https://deepseek-r1-rebzw.eastus2.models.ai.azure.com/"
 
 
 class DeepseekOutput(BaseModel):
@@ -197,6 +209,82 @@ class OllamaLanguageModel(BaseLanguageModel):
         return self._parse_response("")
 
 
+class AzureDeepseekModel(Model):
+    """Azure-hosted DeepSeek model implementation"""
+    
+    def __init__(self, config: AzureModelConfig = None):
+        if config is None:
+            config = AzureModelConfig()
+            
+        self.config = config
+        
+        # Initialize Azure client
+        api_key = os.getenv("AZURE_INFERENCE_CREDENTIAL")
+        if not api_key:
+            raise Exception("AZURE_INFERENCE_CREDENTIAL environment variable must be set")
+            
+        self.client = ChatCompletionsClient(
+            endpoint=config.endpoint,
+            credential=AzureKeyCredential(api_key)
+        )
+
+    def get_prediction_metrics(self) -> List[str]:
+        """Return metrics this model predicts"""
+        return ["error_type", "severity", "description", "solution"]
+
+    def predict(self, text: str) -> ModelPrediction:
+        """Make a prediction using the Azure-hosted model"""
+        _prompt = """
+        You are an expert at analyzing Apache error logs. Given a log line, classify its error type and severity, and provide a description and solution.
+
+        IMPORTANT - OUTPUT FORMAT:
+        You must respond in this exact format with these exact labels:
+        1. severity: [one of: notice, warn, error]
+        2. error_type: [one of: fatal, runtime, no_error, warning]
+        3. description: [your detailed description]
+        4. solution: [your detailed solution]
+
+        Special cases to note:
+        - Messages containing "SSL support unavailable" should be classified as notice, not error
+        - Messages ending with "done..." are notices indicating normal completion
+        - Messages starting with "child init" followed by numbers are errors requiring investigation
+
+        For solutions:
+        - Start with action verbs (Check, Verify, Ensure)
+        - Include specific files and paths
+        - For notices, use "No action required"
+        - Keep solutions concise and actionable
+
+        Analyze this log line:
+        {text}
+        """
+        
+        payload = {
+            "messages": [
+                {
+                    "role": "user", 
+                    "content": _prompt.format(text=text)
+                }
+            ],
+            "max_tokens": self.config.max_tokens,
+            "temperature": self.config.temperature
+        }
+        
+        response = self.client.complete(payload)
+        output = response.choices[0].message.content.strip()
+        
+        # Parse the response into structured format
+        _output = BaseLanguageModel._parse_response(output)
+        
+        return ModelPrediction(
+            input=text,
+            error_type=_output.error_type,
+            severity=_output.severity,
+            description=_output.description,
+            solution=_output.solution
+        )
+
+
 class DeepseekModel(Model):
     def __init__(self, config: Optional[BaseLanguageModel] = None):
         if config is None:
@@ -237,10 +325,17 @@ class DeepseekModel(Model):
         - Include file paths when relevant
         - For PHP/code issues, mention functions or methods to check
 
-        Common solution patterns to follow:
+        Special cases to note:
+        - Messages containing "SSL support unavailable" should be classified as notice, not error
+        - Messages like "done..." are notices indicating normal completion
+        - Messages starting with "child init" followed by numbers are errors requiring investigation
+
+        Common solution patterns to follow (DO NOT exactly match these patterns, but use them as a guide):
         - For no_error: "No specific action is required as this is purely informational"
+        - For no_error (if the message is related to shutting down the server): "No specific solution is required as this is a normal operational message. If unexpected, [...]"
         - For file checks: "Check if the [file] exists at the specified path and verify its permissions"
-        - For configuration: "Check the Apache configuration files (e.g., httpd.conf) for proper settings"
+        - For configuration: "Check the [Apache/server] configuration files (e.g., [.htaccess, httpd.conf]) and ensure proper access permissions are set for [file/path]"
+        - For configuration (if related to workerEnv): "Check the configuration and logs of the workerEnv environment for more details [on error code ...]. Ensure all dependencies are correctly set up and functioning properly."
         - For permissions: "Ensure that the script is executable by the appropriate user or group"
         - For validation: "Check if the [key] exists before accessing it using isset or array_key_exists"
         - For runtime issues: "To fix this issue, check if the [component] is properly configured"
@@ -380,15 +475,20 @@ class DeepseekModel(Model):
 
 
 if __name__ == "__main__":
+    # Choose model to use
+    use_ollama = True
+    use_azure = False
     # Otherwise use Groq + Deepseek-R1-Distill-LLama-70B
-    use_ollama = False
     
     if use_ollama:
         model = DeepseekModel(config=OllamaModelConfig())
+    elif use_azure:
+        model = AzureDeepseekModel(config=AzureModelConfig())
     else:
         model = DeepseekModel(config=GroqModelConfig())
     
-    benchmark = Benchmark(model=model, dataset_path="data/actual/dataset.csv", delimiter="|")
+    # benchmark = Benchmark(model=model, dataset_path="data/actual/dataset.csv", delimiter="|")
+    benchmark = Benchmark(model=model, dataset_path="data/validation/actual_validation.csv", delimiter="|")
     benchmark.run_benchmark()
 
     # benchmark = ApacheBenchmark(

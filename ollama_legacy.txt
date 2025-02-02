@@ -1,0 +1,11 @@
+# Up until this point, we were still using deepseek-r1:1.5b from ollama to test the model.
+# This is the output of the benchmark:
+
+Benchmark complete. Processed 304/449 examples.
+Final average losses:
+  error_type: 0.6283
+  severity: 0.6809
+  description: 0.2209
+  solution: 0.3161
+
+# We fixed a couple of issues in the model, and then started testing it with the groq model.
