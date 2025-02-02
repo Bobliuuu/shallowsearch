@@ -24,7 +24,7 @@ def get_common_ngrams(df, col, grams=1, top_n=20):
 
 if __name__ == "__main__":
     # Load dataset
-    # Dataset already loaded
+    df = pd.read_csv('dataset.csv', sep='|')
 
     # Define text columns (adjust as needed)
     text_columns = ['description', 'solution']  # Change this to the actual text column(s) in your dataset
