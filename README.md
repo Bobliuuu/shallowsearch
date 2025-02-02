@@ -72,11 +72,22 @@ Dimensionality Reduction Attempts: Explored LLMLingua compression and SVD-based 
 #### DeepSeek R1 1.5B Performance 
 ![DeepSeek 1.5B Performance](bench2.png)
 
-### Sequential Processing Bias: DeepSeek R1 interprets text in order of appearance, leading to prioritization of early fields. By placing the "solutions" field earlier in the prompt, accuracy improved.
+Final validation techniques:
+- removed overfit prompts
+- no SVD compression
+- no LLMLingua compression
+- no embeddings
+- few-shot prompting
+- cosine similarity
+- no n-gram analysis on validation dataset
 
-### Severity Misclassification Impact: Incorrect severity predictions correlated with increased loss in description/solution accuracy (~0.2-0.25).
+### Sequential Processing Bias
+DeepSeek R1 interprets text in order of appearance, leading to prioritization of early fields. By placing the "solutions" field earlier in the prompt, accuracy improved.
 
-### Error Type Distinctions:
+### Severity Misclassification Impact
+Incorrect severity predictions correlated with increased loss in description/solution accuracy (~0.2-0.25).
+
+### Error Type Distinctions
 Poor differentiation between fatal and runtime, though this had minimal impact on descriptions/solutions.
 SSL support unavailable classified as notice, aligning with dataset expectations and showing no adverse effect.
 Done... misclassified as warn instead of notice, negatively impacting generated descriptions/solutions.
@@ -85,17 +96,17 @@ Directory index forbidden by rule always misclassified, though impact on descrip
 Child init [number 1] [number 2]... wrongly classified as an "error," leading to description/solution degradation.
 Can't find child 29722 in scoreboard... consistently misclassified as warn instead of error, with no major impact.
 
-### Overfitting and Prompt Refinement:
+### Overfitting and Prompt Refinement
 The model overfit responses for specific patterns (e.g., Check the Apache configuration files had lower scores than Check the configuration of workerEnv).
 If predicted=notice and actual=error, solutions were significantly degraded.
 Injecting edge cases into prompts reduced logical inconsistencies in responses.
 
-### Performance Comparisons:
+### Performance Comparisons
 DeepSeek R1 1.5B: Average response time ~5s on an M3 Max chip (32GB RAM).
 DeepSeek R1 Distilled (LLaMA 70B API): Average response time ~15s.
 Smaller prompts led to better performance in DeepSeek R1 1.5B, indicating a need for more explicit guidance in reasoning tasks.
 
-### Dimensionality Reduction Failures:
+### Dimensionality Reduction Failures
 LLMLingua and SVD-based encoding resulted in poor outputs, showing that compression techniques were ineffective for log analysis.
 SpaCy-based embeddings were explored but found unnecessary given the structured nature of the dataset.
 
@@ -117,3 +128,6 @@ https://arxiv.org/abs/2501.12948
 
 LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models
 https://arxiv.org/abs/2310.05736
+
+Distilling the Knowledge in a Neural Network
+https://arxiv.org/abs/1503.02531
