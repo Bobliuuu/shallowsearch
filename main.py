@@ -330,17 +330,6 @@ class DeepseekModel(Model):
         - Messages like "done..." are notices indicating normal completion
         - Messages starting with "child init" followed by numbers are errors requiring investigation
 
-        Common solution patterns to follow (DO NOT exactly match these patterns, but use them as a guide):
-        - For no_error: "No specific action is required as this is purely informational"
-        - For no_error (if the message is related to shutting down the server): "No specific solution is required as this is a normal operational message. If unexpected, [...]"
-        - For file checks: "Check if the [file] exists at the specified path and verify its permissions"
-        - For configuration: "Check the [Apache/server] configuration files (e.g., [.htaccess, httpd.conf]) and ensure proper access permissions are set for [file/path]"
-        - For configuration (if related to workerEnv): "Check the configuration and logs of the workerEnv environment for more details [on error code ...]. Ensure all dependencies are correctly set up and functioning properly."
-        - For permissions: "Ensure that the script is executable by the appropriate user or group"
-        - For validation: "Check if the [key] exists before accessing it using isset or array_key_exists"
-        - For runtime issues: "To fix this issue, check if the [component] is properly configured"
-        - For access issues: "Verify that all required files are present and accessible"
-
         Analysis steps:
         1. First, identify the log format components:
            - Timestamp if present (e.g., [Thu Sep 21 11:10:55.123456 2023])
