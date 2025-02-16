@@ -20,6 +20,7 @@ where `model_to_evaluate` can be:
 
 - `gpt4o`
 - `deepseek-70b-llama-groq`
+- `llama-3-3-70b-groq`
 
 ## Abstract
 
