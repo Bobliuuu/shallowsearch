@@ -97,6 +97,26 @@ Dimensionality Reduction Attempts: Explored LLMLingua compression and SVD-based 
 
 ## Results and Discussion
 
+### Tentative Model Results
+
+Results obtained after a single run on Sunday, February 16, 2025.
+
+| Model Name | Error Type Loss | Severity Loss | Description Loss | Solution Loss |
+|---|---|---|---|---|
+| DeepSeek-70B-Llama (Groq) | 0.1875 | 0.0563 | 0.1300 |  0.1956 |
+| Llama-3.3 (Groq) | 0.8500 | 0.9688 | 0.1453 | 0.2187 |
+| GPT-4o | 0.3312 | 0.0437 | 0.1356 | 0.2353 |
+
+For these losses, lower means better performance. 
+
+Run using:
+
+```shell
+uv run main.py deepseek-70b-llama-groq
+uv run main.py llama-3-3-70b-groq
+uv run main.py gpt4o
+```
+
 ### Model Performance Metrics
 
 #### DeepSeek R1 Distilled (LLaMA 70B) Performance
