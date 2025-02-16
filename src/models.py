@@ -506,21 +506,18 @@ class GPT4oModel(Model):
             model="gpt-4o-2024-11-20",
             messages=[{"role": "user", "content": _prompt}],
             top_p=1.0,
-            temperature=1.0,
+            temperature=0.6,
         )
         completion_text = completion.choices[0].message.content
 
-        print("completion_text:", completion_text)
+        # print("completion_text:", completion_text)
         # print(completion_text)
 
         formatted_output = BaseLanguageModel._parse_response(completion_text)
-        print("formatted_output", formatted_output)
+        # print("formatted_output", formatted_output)
 
-        print(formatted_output.error_type)
+        # print(formatted_output.error_type)
 
-        # raise KeyError
-
-        # _output = self.model.get_structured_response(f"{_prompt}\n\n{text}")
         _pred = ModelPrediction(
             input=text,
             error_type=formatted_output.error_type,
@@ -531,7 +528,7 @@ class GPT4oModel(Model):
         return _pred
 
 
-class GroqV2(Model):
+class GroqDeepSeekLlama70BV2(Model):
     def __init__(
         self, config: Optional[BaseLanguageModel] = None, eval_prompt: str = None
     ):
@@ -558,7 +555,59 @@ class GroqV2(Model):
             model="deepseek-r1-distill-llama-70b",
             messages=[{"role": "user", "content": _prompt}],
             top_p=1.0,
-            temperature=1.0,
+            temperature=0.6,
+        )
+        completion_text = completion.choices[0].message.content
+
+        print("completion_text:", completion_text)
+        # print(completion_text)
+
+        formatted_output = BaseLanguageModel._parse_response(completion_text)
+        print("formatted_output", formatted_output)
+
+        print(formatted_output.error_type)
+
+        # raise KeyError
+
+        # _output = self.model.get_structured_response(f"{_prompt}\n\n{text}")
+        _pred = ModelPrediction(
+            input=text,
+            error_type=formatted_output.error_type,
+            severity=formatted_output.severity,
+            description=formatted_output.description,
+            solution=formatted_output.solution,
+        )
+        return _pred
+
+
+class GroqLlama3_3_70B(Model):
+    def __init__(
+        self, config: Optional[BaseLanguageModel] = None, eval_prompt: str = None
+    ):
+        # temperature: float = 0.6
+        # num_predict: Optional[int] = 4096
+        # top_p: float = 0.95
+
+        self.model = Groq(
+            api_key=os.getenv("X_GROQ_API_KEY"),
+        )
+        self.eval_prompt = eval_prompt
+
+    def get_prediction_metrics(self) -> list:
+        """Return a list of metrics this model predicts"""
+        return ["error_type", "severity", "description", "solution"]
+
+    def predict(self, text: str) -> ModelPrediction:
+        """Make a prediction using the selected model"""
+
+        _prompt = self.eval_prompt + f"\n{text}"
+        print(_prompt)
+
+        completion = self.model.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": _prompt}],
+            top_p=1.0,
+            temperature=0.6,
         )
         completion_text = completion.choices[0].message.content
 

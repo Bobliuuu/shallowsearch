@@ -45,17 +45,15 @@ if __name__ == "__main__":
     #     model = DeepseekModel(config=GroqModelConfig())
 
     if args.model == "gpt4o":
-        model = GPT4oModel(eval_propt=PROMPT)
+        model = GPT4oModel(eval_prompt=PROMPT)
         print("GPT-4o benchmark")
     elif args.model == "deepseek-70b-llama-groq":
-        model = GroqV2(eval_prompt=PROMPT)
-        print("GroqV2 benchmark")
-    elif args.model == "modal":
+        model = GroqDeepSeekLlama70BV2(eval_prompt=PROMPT)
+        print("Groq DeepSeek 70B benchmark")
+    elif args.model == "llama-3-3-70b-groq":
+        model = GroqLlama3_3_70B(eval_prompt=PROMPT)
+        print("Groq Llama 3.3 70B benchmark")
 
-        @modal_app.local_entrypoint()
-        def main():
-            print(square.remote(10))
-            print("---")
     else:
         raise NameError(f"Model argument {args.model} not recognized.")
 
