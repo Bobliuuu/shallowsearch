@@ -2,6 +2,13 @@
 
 ## Quickstart
 
+Create a `.env` file at the project root directory to store the following API keys:
+
+```
+X_OPENAI_API_KEY="<OPENAI API KEY>"
+X_GROQ_API_KEY="<GROQ API KEY>"
+```
+
 Using pip:
 
 ```
