@@ -13,10 +13,10 @@ Using pip:
 
 ```
 pip install -r requirements.txt
-python main.py <model_to_evaluate>
+python main.py <model>
 ```
 
-where `model_to_evaluate` can be:
+where `<model>` can be:
 
 - `gpt4o`
 - `deepseek-70b-llama-groq`
